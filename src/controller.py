@@ -123,7 +123,7 @@ class AppController:
                    sorting=None,
                    round_choice=None,
                    choosing=None):
-        """[summary]
+        """
 
         Args:
             choice (int, optional): number of the command. Defaults to 0.

@@ -42,6 +42,11 @@ class Item:
 class Collection:
     """Take a dictionnary in argument and turns items into attributes and corresponding values"""
     def __init__(self, data=None):
+        """Initiate Collection with items from a dictionnary
+
+        Args:
+            data (dictionnary, optional): [description]. Defaults to None.
+        """  
         self._items = []
         for item in data:
             self._items.append(Item(**item))
@@ -61,6 +66,11 @@ class Model:
 
     @classmethod
     def create(cls, attrs):
+        """Writte data in the database
+
+        Args:
+            attrs (dictionnary): will insert the dictionnary at the correct table
+        """        
         cls.__table__.insert(attrs)
 
 
@@ -75,23 +85,32 @@ class Tournament(Model):
     def set_tournament_id(cls):
         """Automatically returns the id of a new tournament
         It measures the lengh of the table 'tournaments' in the database
+            Return:
+                integer: it will be the id of the tournament in the database
         """
         return len(cls.__table__) + 1
 
     @classmethod
     def set_player_id(cls):
         """Automatically returns the id of a new tournament
-        It measures the lengh of the table 'tournaments' in the database
+        It measures the lengh of the table 'players' in the database
+            Return:
+                integer: it will be the id of the player in the database
         """
         return len(db.table('players')) + 1
 
     @classmethod
     def get_players(cls, tournament_id):
         """Store players competing in the wished tournament
-        It first get the dictionnary of the tournament in the table 'tournaments'
-        Secondly it creates a list composed of Player's objects
+        Creates a list composed of Player's objects
         Then it sorts this list according to the tournament_score of each player.
         In case of equality it takes the elo rank.
+            
+            Args:
+                tournament_id (integer): get the dictionnary of the tournament in the table 'tournaments'
+
+            Return:
+                list: sorted list of tournament's players
         """
         P = Query()
         tournament = cls.__table__.search(where('id') == tournament_id)
@@ -111,9 +130,14 @@ class Tournament(Model):
     @classmethod
     def listing_all_possible_games(cls, tournament_id):
         """Make a list with all possible game configurations
-        This is made with a list of all tournament players ids
-        and the method combinations from itertools.
+        This is made with itertools combinations methods.
         Then cases as [[P1 vs P2], [P2 vs P1]] are avoided
+            
+            Args:
+                tournament_id: id of the wished tournament
+            
+            Return:
+                list: contains all possible games configurations
         """
         players = [player.id.value for player in Tournament.get_players(tournament_id)]
         setattr(Tournament, 'list_of_possible_games', [
@@ -257,7 +281,16 @@ class Tournament(Model):
 
     @classmethod
     def get_game_list(cls, tournament_id_user_choice):
-        """Returns the list of games for the ongoing round in the wished tournament"""
+        """Returns the list of games for the ongoing round in the wished tournament
+
+        Args:
+            tournament_id_user_choice (integer): id of the wished tournament
+
+        Returns:
+            list: game's list of the ongoing tournament
+            integer: id of the ongoing round
+        """        
+        
         T = Query()
         chosen_tournament = Collection(cls.__table__.search(
             where('id') == tournament_id_user_choice))
@@ -288,7 +321,16 @@ class Tournament(Model):
         for a game if previous ones were incorrect.
         The method also check if scores are possible
         as the sum of each player score is expected to be 1
+
+        Args:
+            tournament_id (integer): id of the wished tournament in the database
+            round_id (integer): id of the ongoing round in the database
+            match_id (integer): id of the match in the database
+            player_one_score (float): 0, 0.5 or 1
+            player_two_score (float): 0, 0.5 or 1
+            matchs_results (list): list of the games with the results 
         """
+
         player_one_id = db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur1"]
         player_two_id = db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur2"]
 
@@ -342,7 +384,13 @@ class Tournament(Model):
     @classmethod
     def save_results(cls, matchs_results, round_id, tournament_id_user_choice):
         """Updates a round results in the table 'rounds'
-        It also give an ending date to the corresponding round"""
+        It also give an ending date to the corresponding round
+
+        Args:
+            matchs_results (list): list of the games with the results 
+            round_id (integer): id of the round in database
+            tournament_id_user_choice (integer): id of the tournament in database
+        """
         db.table('rounds').update({"games": matchs_results},
                                   (where("tournament_id") == tournament_id_user_choice) &
                                   (where("round_id") == round_id))
@@ -361,7 +409,16 @@ class Tournament(Model):
     def get_tournament_score(cls, player_id, tournament_id):
         """Calculates the tournament score of a player in a wished tournament
         The method identify all games the player has played in the tournament
-        and sums all player's score for each."""
+        and sums all player's score for each.
+
+        Args:
+            player_id (integer): id of the player in database
+            tournament_id (integer): id of the concerned tournament in database
+
+        Returns:
+            float: score of the player in the wished tournament 
+        """        
+        """"""
         if not db.table('scores').search(where('tournament_id') == tournament_id):
             return 0
 
@@ -373,13 +430,25 @@ class Tournament(Model):
 
     @classmethod
     def change_player_elo(cls, player_choice, new_elo):
-        """Changes the elo of a player in the table 'players'"""
+        """Changes the elo of a player in the table 'players'
+
+        Args:
+            player_choice (integer): id of the player in database
+            new_elo (integer): new value updated in database
+        """  
         P = Query()
         db.table('players').update({'elo': new_elo}, P.id == player_choice)
 
     @classmethod
     def get_player_info(cls, player_choice):
-        """Return the corresponding dictionnary of the wished player"""
+        """Return the corresponding dictionnary of the wished player
+
+        Args:
+            player_choice (integer): id of the player in database
+
+        Returns:
+            list: list displaying all infos about the player
+        """
         player = db.table('players').get(where('id') == player_choice)
         player_display = [f"Prénom: {player['firstname']}",
                           f"Nom: {player['lastname']}",
@@ -390,21 +459,132 @@ class Tournament(Model):
 
     @classmethod
     def get_all_players(cls):
-        """"Return a list with all components of the 'players' table"""
+        """Return a list with all components of the 'players' table
+        Returns:
+            list: a list with all components of the 'players' table
+        """        
         return db.table('players').all()
 
     @classmethod
     def get_all_tournaments(cls):
-        """"Return a list with all components of the 'tournaments' table"""
+        """Return a list with all components of the 'tournaments' table
+
+        Returns:
+            list: all components of the 'tournaments' table
+
+        """
         return db.table('tournaments').all()
 
     @classmethod
     def get_tournament_rounds(cls, tournament_choice):
-        """"
-        Return a list with all components of the 'rounds' table with
-        the same tournament_id that the value of the parameter tournament_choice
+        """Return a list with all components of the 'rounds' table for a given
+        tournament
+
+        Args:
+            tournament_choice (integer): tournament id in database
+
+        Returns:
+            list: all components of the 'rounds' table for a given
+        tournament
         """
         return db.table('rounds').search(where('tournament_id') == tournament_choice)
+
+    @classmethod
+    def report_1(cls, sorting, returned_report):
+        """generate a report with all players in database
+
+        Args:
+            sorting (string): a for alphabetical, c for rank
+            returned_report (list): each element is a list with player info
+        """        
+        if sorting == "a":
+                report = sorted(Tournament.get_all_players(), key=lambda x: x["firstname"].lower())
+        if sorting == "c":
+            report = sorted(Tournament.get_all_players(), key=lambda x: x["elo"], reverse=True)
+        for value in report:
+            returned_report.append([f"Prénom: {value['firstname']}",
+                                    f"Nom: {value['lastname']}",
+                                    f"Date de naissance: {value['birth_date']}",
+                                    f"Classement elo: {value['elo']}"])
+    
+    @classmethod
+    def report_2(cls, report, returned_report, choosing):
+        """generate a report with all tournaments in database 
+
+        Args:
+            report (list): intermediate list that will be cleaned
+            returned_report (list): will receive clean data
+            choosing (boolean): only use in this method as a trigger for cleaning
+
+        Returns:
+            list: list with clean data
+        """        
+        report = Tournament.get_all_tournaments()
+        for value in report:
+            if choosing:
+                try:
+                    del value["lists_of_possible_games"]
+                except KeyError:
+                    pass
+                return report
+            returned_report.append([f"Nom: {value['name']}",
+                                    f"Lieu: {value['location']}",
+                                    f"Nombre de tours prévus: {value['nb_rounds']}",
+                                    f"Joueurs participants: {value['players']}",
+                                    f"id des tours déjà joués: {value['rounds']}",
+                                    f"Règles des partie: {value['game_rules']}",
+                                    f"Date de début: {value['begin_date']}",
+                                    f"Date de fin: {value['ending_date']}"])
+        return returned_report
+    
+    @classmethod
+    def report_3(cls, report, returned_report,tournament_choice, sorting):
+        """generate a list with all players for a given tournament
+
+        Args:
+            report (list): empty list that will be fill with raw data
+            returned_report (list): empty list that will be filled with fancy elements
+            tournament_choice (integer): id of the wished tournament in database
+            sorting (string): a for alphabetical, c for rank
+        """        
+        if sorting == "a":
+                report = sorted(Tournament.get_players(tournament_choice),
+                                key=lambda x: x.firstname.value.lower())
+        if sorting == "c":
+            report = sorted(Tournament.get_players(tournament_choice),
+                            key=lambda x: x.elo.value, reverse=True)
+        for value in report:
+            returned_report.append([f"Prénom: {value.firstname.value}",
+                                    f"Nom: {value.lastname.value}",
+                                    f"Date de naissance: {value.birth_date.value}",
+                                    f"Classement elo: {value.elo.value}",
+                                    f"Score dans le tournoi: {value.tournament_score}"])
+    
+    @classmethod
+    def report_4(cls, report, returned_report, tournament_choice):
+        """generate a report ith all rounds from a given tournament
+
+        Args:
+            report (list): empty list that will be fill with raw data
+            returned_report (list): empty list that will be filled with fancy elements
+            tournament_choice (integer): id of the wished tournament in database
+
+        Returns:
+            list: list with fancy data
+        """        
+        report = Tournament.get_tournament_rounds(tournament_choice)
+        display = deepcopy(report)
+        for value in display:
+            try:
+                del value["round_id"]
+                del value["tournament_id"]
+            except KeyError:
+                pass
+            returned_report.append([f"Nom du tour: {value['name']}",
+                                    f"Date de début: {value['beginning_date']}",
+                                    f"Date de fin: {value['ending_date']}",
+                                    f"Parties jouées: {value['games']}"])
+        return returned_report
 
     @classmethod
     def get_report(cls, choice,
@@ -412,62 +592,29 @@ class Tournament(Model):
                    sorting=None,
                    round_choice=None,
                    choosing=None):
+        """will generate a report according to the user choice
+
+        Args:
+            choice (integer): number of the wished report
+            tournament_choice (integer, optional): id of the wished tournament in database. Defaults to None.
+            sorting (string, optional): a for alphabetical, c for rank. Defaults to None.
+            round_choice (integer, optional): id of the round in database. Defaults to None.
+            choosing (boolean, optional): only used in report 2. Defaults to None.
+
+        Returns:
+            list: list filled with data to display
+        """                   
+                   
         report = []
         returned_report = []
         if choice == 1:
-            if sorting == "a":
-                report = sorted(Tournament.get_all_players(), key=lambda x: x["firstname"].lower())
-            if sorting == "c":
-                report = sorted(Tournament.get_all_players(), key=lambda x: x["elo"], reverse=True)
-            for value in report:
-                returned_report.append([f"Prénom: {value['firstname']}",
-                                        f"Nom: {value['lastname']}",
-                                        f"Date de naissance: {value['birth_date']}",
-                                        f"Classement elo: {value['elo']}"])
+            Tournament.report_1(sorting, returned_report)
         if choice == 2:
-            report = Tournament.get_all_tournaments()
-            for value in report:
-                if choosing:
-                    try:
-                        del value["lists_of_possible_games"]
-                    except KeyError:
-                        pass
-                    return report
-                returned_report.append([f"Nom: {value['name']}",
-                                        f"Lieu: {value['location']}",
-                                        f"Nombre de tours prévus: {value['nb_rounds']}",
-                                        f"Joueurs participants: {value['players']}",
-                                        f"id des tours déjà joués: {value['rounds']}",
-                                        f"Règles des partie: {value['game_rules']}",
-                                        f"Date de début: {value['begin_date']}",
-                                        f"Date de fin: {value['ending_date']}"])
+            return Tournament.report_2(report, returned_report, choosing)
         if choice == 3:
-            if sorting == "a":
-                report = sorted(Tournament.get_players(tournament_choice),
-                                key=lambda x: x.firstname.value.lower())
-            if sorting == "c":
-                report = sorted(Tournament.get_players(tournament_choice),
-                                key=lambda x: x.elo.value, reverse=True)
-            for value in report:
-                returned_report.append([f"Prénom: {value.firstname.value}",
-                                        f"Nom: {value.lastname.value}",
-                                        f"Date de naissance: {value.birth_date.value}",
-                                        f"Classement elo: {value.elo.value}",
-                                        f"Score dans le tournoi: {value.tournament_score}"])
+            Tournament.report_3(report, returned_report, tournament_choice, sorting)
         if choice == 4:
-            report = Tournament.get_tournament_rounds(tournament_choice)
-            display = deepcopy(report)
-            for value in display:
-                try:
-                    del value["round_id"]
-                    del value["tournament_id"]
-                except KeyError:
-                    pass
-                returned_report.append([f"Nom du tour: {value['name']}",
-                                        f"Date de début: {value['beginning_date']}",
-                                        f"Date de fin: {value['ending_date']}",
-                                        f"Parties jouées: {value['games']}"])
-            return returned_report
+            Tournament.report_4(report, returned_report, tournament_choice)
         if choice == 5:
             first_report = Tournament.get_tournament_rounds(tournament_choice)
             for value in first_report:
