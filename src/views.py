@@ -8,7 +8,7 @@ import pprint
 
 
 class Views:
-    """The class where you find display methods  """
+    """The class where you find display methods """
     @staticmethod
     def create_tournament_view():
         """Interacts with the user to create a tournament
@@ -17,6 +17,8 @@ class Views:
 
         ... raises:: If less than 8 players are informed it raises
                     an error and the user is rediricted to main menu
+            returns:
+             dictionnary : a dictionnary to write in base with all informations about the tournament  
         """
         players = []
         tournament_info = {}
@@ -53,8 +55,9 @@ class Views:
     @staticmethod
     def create_player_view():
         """Used to enter a new player in database
+        
         First four parameters are optionals.
-        .. raises:: If the elo field is not informed it raises
+            Raises: If the elo field is not informed it raises
                     an error and the user is rediricted to main menu"""
         player_info = {}
         print("Vous devez renseigner les informations suivantes:")
@@ -72,7 +75,11 @@ class Views:
 
     @staticmethod
     def show_generated_round(round):
-        """Show generated games for a newly generated round"""
+        """Show generated games for a newly generated round
+
+        Args:
+            round (dictionnary): Informations about the wished round in database
+        """     
         if round:
             print(round['games'])
             return
@@ -80,10 +87,15 @@ class Views:
 
     @staticmethod
     def tournament_choice_view(generating_rounds=False):
-        """Used to select a tournament
+        """"Used to select a tournament
         The user enter the id of the wanted tournament
 
-        ... warning:: must be an integer"""
+        Args:
+            generating_rounds (bool, optional): Equal to true if generating a round for an ongoing tournament. Defaults to False.
+
+        Returns:
+            integer: the id of the wished tournament
+        """
         tournament_list = AppController.get_report(choice=2, choosing=True)
         for tournament in tournament_list:
             if generating_rounds:
@@ -108,11 +120,16 @@ class Views:
 
     @staticmethod
     def get_match_id_view(games_list):
-        """Used to enter round results
+        """This method is called when the user wants to enter a round results
         The game list is printed on screen and the user have to chose
         the id of the game.
 
-        This method is called when the user wants to enter a round results"""
+        Args:
+            games_list (list): the list of round's matchs
+
+        Returns:
+            dictionnary: dictionnary with the results of matchs updated      
+        """
         if not games_list:
             print("La liste des matchs est vide.")
             return
@@ -172,7 +189,8 @@ class Views:
     def player_choice_view():
         """Used to consult informations about a player
         This method prints all player in database.
-        The user must enter the id of the player."""
+        The user must enter the id of the player.
+        It must be an integer"""
         players = AppController.get_player_info()
         for player in players:
             print(
@@ -259,7 +277,9 @@ class Views:
 
     @staticmethod
     def main_menue_view():
-        """Used in the main.py file to print possible actions for the user."""
+        """Used in the main.py file to print possible actions for the user.
+           Return:
+           integer: number of the wished action"""
         print("\nBienvenue dans le menu principal! Que souhaitez-vous faire?"
               "(rentrez le n° de l'action)\n")
         print(
