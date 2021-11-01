@@ -363,6 +363,8 @@ class Tournament(Model):
 
         player_one_id = db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur1"]
         player_two_id = db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur2"]
+        player_one_name = db.table('players').get(where("id") == player_one_id)["firstname"]
+        player_two_name = db.table('players').get(where("id") == player_two_id)["firstname"]
 
         db.table('matchs').update({'score_one': player_one_score},
                                   (where('match_id') == match_id) & (where('round_id') == round_id))
@@ -379,7 +381,7 @@ class Tournament(Model):
             db.table('tournaments').update({"list_of_possible_games": list_of_possible_games},
                                            where("id") == tournament_id)
 
-        game = Match(player_one_id, player_two_id, player_one_score, player_two_score, match_id)
+        game = Match(player_one_id, player_two_id, player_one_score, player_two_score, player_one_name, player_two_name, match_id)
 
         if db.table('scores').get((where('tournament_id') == tournament_id) &
                                   (where("player_id") == player_one_id)):
