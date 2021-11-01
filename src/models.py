@@ -156,7 +156,9 @@ class Tournament(Model):
             player_two_id = players[bottom].id.value
             score_one = 0
             score_two = 0
-            game = Match(player_one_id, player_two_id, score_one, score_two, count_rounds)
+            player_one_name = players[top].firstname.value
+            player_two_name = players[bottom].firstname.value
+            game = Match(player_one_id, player_two_id, score_one, score_two,player_one_name, player_two_name, count_rounds)
             match.append(game.to_json())
             Match.create({'joueur1': players[top].id.value,
                             'joueur2': players[bottom].id.value,
@@ -179,11 +181,16 @@ class Tournament(Model):
                              ids,
                              round_id,
                              tournament_id):
+        player_one_name = Tournament.get_player_info(player_one_id)[0].split()[1]
+        player_two_name = Tournament.get_player_info(player_two_id)[0].split()[1]
         game = Match(player_one_id,
                     player_two_id,
                     score_one,
                     score_two,
-                    count_rounds)
+                    player_one_name,
+                    player_two_name,
+                    count_rounds
+                    )
         match.append(game.to_json())
         nb_of_games += 1
         if len(match) == 4:
@@ -293,12 +300,10 @@ class Tournament(Model):
                                                     round_id,
                                                     tournament_id)
                 except IndexError:
-                    print("on est dans l'index error")
                     copy_players = deepcopy(players)
                     to_reindex += 1 # Incremented each time the case is encountered
                     copy_players[-1], copy_players[-to_reindex] = copy_players[-to_reindex], copy_players[-1]
-                    match = []
-                    ids = []
+                    match, ids = [], []
                     continue
                 if nb_of_games == 4:
                     break
@@ -661,20 +666,22 @@ class Player(Model):
 class Match(Model):
     __table__ = db.table('matchs')
 
-    def __init__(self, player_one_id, player_two_id, score_one=0, score_two=0, round_id=None):
+    def __init__(self, player_one_id, player_two_id, score_one=0, score_two=0, player_one_name=None, player_two_name=None, round_id=None):
         super().__init__()
         self.player_one_id = player_one_id
         self.player_two_id = player_two_id
-        self.round_id = round_id
         self.score_one = score_one
         self.score_two = score_two
+        self.player_one_name = player_one_name
+        self.player_two_name = player_two_name
+        self.round_id = round_id
 
     def __repr__(self):
-        return f"{([self.player_one_id, self.score_one], [self.player_two_id, self.score_two])}"
+        return f"{([self.player_one_id, self.player_one_name, self.score_one],[self.player_two_id, self.player_two_name, self.score_two])} \n"
 
     def to_json(self):
-        return json.dumps(([self.player_one_id, self.score_one],
-                           [self.player_two_id, self.score_two]))
+        return json.dumps(([self.player_one_id, self.player_one_name, self.score_one],
+                           [self.player_two_id, self.player_two_name, self.score_two]))
 
 
 class Round(Model):

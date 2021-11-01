@@ -81,7 +81,9 @@ class Views:
             round (dictionnary): Informations about the wished round in database
         """     
         if round:
-            print(round['games'])
+            # print(round['games'])
+            for game in round['games']:
+                print(game)
             return
         print('Pas de round généré.')
 
