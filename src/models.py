@@ -160,8 +160,8 @@ class Tournament(Model):
             player_two_name = players[bottom].firstname.value
             game = Match(player_one_id, player_two_id, score_one, score_two,player_one_name, player_two_name, count_rounds)
             match.append(game.to_json())
-            Match.create({'joueur1': players[top].id.value,
-                            'joueur2': players[bottom].id.value,
+            Match.create({'joueur1': f"{player_one_name}(id:{players[top].id.value})",
+                            'joueur2': f"{player_two_name}(id:{players[bottom].id.value})",
                             'score_one': 0,
                             'score_two': 0,
                             'round_id': round_id,
@@ -361,8 +361,8 @@ class Tournament(Model):
             matchs_results (list): list of the games with the results 
         """
 
-        player_one_id = db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur1"]
-        player_two_id = db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur2"]
+        player_one_id = int(db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur1"][-2])
+        player_two_id = int(db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur2"][-2])
         player_one_name = db.table('players').get(where("id") == player_one_id)["firstname"]
         player_two_name = db.table('players').get(where("id") == player_two_id)["firstname"]
 
