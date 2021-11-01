@@ -125,7 +125,7 @@ class Tournament(Model):
         for player in players:
             setattr(player, 'tournament_score', Tournament.get_tournament_score(
                 player.id.value, tournament_id) or 0)
-        return players  # on renvoie la liste triée par l'elo des joueurs participants au tournoi.
+        return players  # on renvoie la liste triée par le score et l'elo des joueurs participants au tournoi.
 
     @classmethod
     def listing_all_possible_games(cls, tournament_id):
@@ -240,7 +240,7 @@ class Tournament(Model):
             where('id') == tournament_id)['nb_of_played_round']
         nb_rounds = db.table('tournaments').get(
             where('id') == tournament_id)['nb_rounds']
-        if nb_of_played_round == nb_rounds:
+        if nb_of_played_round >= nb_rounds:
             return None
         count_rounds = db.table('tournaments').get(
             where('id') == tournament_id)['nb_of_played_round']
@@ -253,6 +253,7 @@ class Tournament(Model):
         else:
             copy_players = deepcopy(players)
             ids = []
+            to_reindex = 1 # used to solve the case where the two last player have already encountered.
             while True:
                 nb_of_games = 0
                 nb_of_players = len(players)
@@ -264,8 +265,7 @@ class Tournament(Model):
                         while not authorized_game:
                             player_one_id = copy_players[player_one].id.value
                             player_two_id = copy_players[player_two].id.value
-                            score_one = 0
-                            score_two = 0
+                            score_one, score_two = 0, 0
                             if [player_one_id, player_two_id] in db.table('tournaments').search(
                                     where("id") == tournament_id)[0]["list_of_possible_games"]:
                                 authorized_game = True
@@ -280,6 +280,8 @@ class Tournament(Model):
                                 copy_players.remove(copy_players[player_one])
                             if not authorized_game:
                                 player_two += 1
+                                if player_two > 7:
+                                    print(f"il ne trouve pas d'adversaire pour le joueur {player_one_id}")
                         nb_of_games = Tournament.authorized_game(player_one_id,
                                                     player_two_id,
                                                     score_one,
@@ -291,11 +293,15 @@ class Tournament(Model):
                                                     round_id,
                                                     tournament_id)
                 except IndexError:
+                    print("on est dans l'index error")
                     copy_players = deepcopy(players)
-                    copy_players[-1], copy_players[-2] = copy_players[-2], copy_players[-1]
+                    to_reindex += 1 # Incremented each time the case is encountered
+                    copy_players[-1], copy_players[-to_reindex] = copy_players[-to_reindex], copy_players[-1]
                     match = []
                     ids = []
-                break
+                    continue
+                if nb_of_games == 4:
+                    break
         return Tournament.enter_round_in_database(round_id, tournament_id, count_rounds, match)
 
     @classmethod
