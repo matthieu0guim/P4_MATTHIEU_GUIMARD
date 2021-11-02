@@ -24,9 +24,17 @@ class Views:
         tournament_info = {}
         print("Vous devez renseigner les informations suivantes:")
         print("Nom du tournoi:")
-        tournament_info["name"] = input()
+        while True:
+            tournament_info["name"] = input()
+            if tournament_info["name"] != "":
+                break
+            print("Le nom est une information obligatoire")
         print("Lieu:")
-        tournament_info["location"] = input()
+        while True:
+            tournament_info["location"] = input()
+            if tournament_info["location"] != "":
+                break
+            print("Le lieu est une information obligatoire")
         print("Commentaires:")
         tournament_info["description"] = input()
         print("nombre de tours: (4 par défaut)")
@@ -45,9 +53,13 @@ class Views:
                 pass
         print("Quels types de parties seront jouées?")
         print("bullet, blitz, coup rapide")
+        while True:
+            tournament_info["game_rules"] = input()
+            if tournament_info["game_rules"] != "":
+                break
+            print("Le type de partie est obligatoire")
         tournament_info["rounds"] = []
         tournament_info["nb_of_played_round"] = 0
-        tournament_info["game_rules"] = input()
         tournament_info["begin_date"] = str(datetime.now())
         tournament_info["ending_date"] = ""
         AppController.create_tournament(tournament_info)
@@ -62,15 +74,28 @@ class Views:
         player_info = {}
         print("Vous devez renseigner les informations suivantes:")
         print("Prénom:")
-        player_info["firstname"] = input()
+        while True:
+            player_info["firstname"] = input()
+            if player_info["firstname"] != "":
+                break
+            print("Le prénom est obligatoire")
         print("Nom")
-        player_info["lastname"] = input()
+        while True:
+            player_info["lastname"] = input()
+            if player_info["lastname"] != "":
+                break
+            print("Le nom est obligatoire")
         print("Date de naissance:")
         player_info["birth_date"] = input()
         print("Genre:")
         player_info["gender"] = input()
         print("Classement")
-        player_info["elo"] = int(input())
+        while True:
+            try:
+                player_info["elo"] = int(input())
+                break
+            except ValueError:
+                print("Le classement est obligatoire")
         AppController.create_player(player_info)
 
     @staticmethod
