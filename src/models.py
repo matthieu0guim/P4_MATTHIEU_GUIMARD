@@ -228,6 +228,14 @@ class Tournament(Model):
         db.table('tournaments').update({'rounds': rounds},
                                        where("id") == tournament_id)
         return round
+    
+    @classmethod
+    def check_last_round(cls, tournament_id, round_id):
+        previous_round_finished = db.table('rounds').get((where('tournament_id') == tournament_id) &
+                                                         (where('round_id') == round_id))["ending_date"]
+        if previous_round_finished == "":
+            return False
+        return True
 
     @classmethod
     def generate_round(cls, tournament_id):
@@ -252,11 +260,14 @@ class Tournament(Model):
         count_rounds = db.table('tournaments').get(
             where('id') == tournament_id)['nb_of_played_round']
         round_id = len(db.table('rounds')) + 1
+        
         is_first_round = count_rounds == 0
         match = []
         players = Tournament.get_players(tournament_id)
         if is_first_round:
             Tournament.generate_first_round(players, tournament_id, count_rounds, round_id, match)
+        elif not Tournament.check_last_round(tournament_id, round_id - 1):
+            return False
         else:
             copy_players = deepcopy(players)
             ids = []

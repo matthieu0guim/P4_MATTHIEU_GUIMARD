@@ -116,8 +116,10 @@ class Views:
         """
         tournament_id_user_choice = int(Views.tournament_choice_view(generating_rounds=True))
         round = AppController.generate_tour(tournament_id_user_choice)
-        if not round:
+        if round == None:
             print("Le tournoi est terminé. Il n'est plus possible de jouer de tours.")
+        elif round == False:
+            print("Il y a déjà un round en cours, vous devez d'abord rentrer les résultats avant d'en créer un autre")
         Views.show_generated_round(round)
 
     @staticmethod
