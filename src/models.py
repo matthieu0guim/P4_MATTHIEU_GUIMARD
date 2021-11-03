@@ -72,6 +72,7 @@ class Model:
             attrs (dictionnary): will insert the dictionnary at the correct table
         """        
         cls.__table__.insert(attrs)
+    
 
 
 class Tournament(Model):
@@ -145,7 +146,15 @@ class Tournament(Model):
         return Tournament.list_of_possible_games
 
     @classmethod
-    def generate_first_round(cls, players, tournament_id, count_rounds, round_id, match):
+    def generate_first_round(cls, players, tournament_id, round_id, match):
+        """As the first round has a unique logic in its generation it is isolated in a function.
+           
+        Args:
+            players (list): sorted list of tournament's players
+            tournament_id (integer): id of the wished tournament
+            round_id (integer): id of the round in the database
+            match (list): empty list that will be filled with the generated games
+        """        
         all_possible_games = Tournament.listing_all_possible_games(tournament_id)
         cls.__table__.update({"list_of_possible_games": all_possible_games},
                                 where("id") == tournament_id)
@@ -158,14 +167,9 @@ class Tournament(Model):
             score_two = 0
             player_one_name = players[top].firstname.value
             player_two_name = players[bottom].firstname.value
-            game = Match(player_one_id, player_two_id, score_one, score_two,player_one_name, player_two_name, count_rounds)
+            game = Match(player_one_id, player_two_id, score_one, score_two,player_one_name, player_two_name, round_id)
             match.append(game.to_json())
-            Match.create({'joueur1': f"{player_one_name}(id:{players[top].id.value})",
-                            'joueur2': f"{player_two_name}(id:{players[bottom].id.value})",
-                            'score_one': 0,
-                            'score_two': 0,
-                            'round_id': round_id,
-                            'match_id': len(db.table('matchs')) + 1})
+            game.save()
             top += 1
             bottom += 1
         pass
@@ -173,16 +177,26 @@ class Tournament(Model):
     @classmethod
     def authorized_game(cls, player_one_id,
                              player_two_id,
-                             score_one,
-                             score_two,
                              count_rounds,
                              match,
-                             nb_of_games,
-                             ids,
-                             round_id,
-                             tournament_id):
+                             nb_of_games):
+        """When a generated game is authorized, as it has not already happened,
+        this function add it to the game list of the round and create Match instance.
+
+
+        Args:
+            player_one_id (integer): id of the first player in database
+            player_two_id (integer): id of the second player in database
+            count_rounds (integer): id of the round in the tournament
+            match (list): list that will store the generated game
+            nb_of_games (integer): number of games in the round. Used to detect when all games have been generated
+
+        Returns:
+            integer: when equal to for this value will make the program break from the while loop it is into
+        """        
         player_one_name = Tournament.get_player_info(player_one_id)[0].split()[1]
         player_two_name = Tournament.get_player_info(player_two_id)[0].split()[1]
+        score_one, score_two = 0, 0
         game = Match(player_one_id,
                     player_two_id,
                     score_one,
@@ -191,24 +205,24 @@ class Tournament(Model):
                     player_two_name,
                     count_rounds
                     )
-        match.append(game.to_json())
+        match.append([[game.player_one_id, game.player_one_name, game.score_one],
+                     [game.player_two_id, game.player_two_name, game.score_two]])
         nb_of_games += 1
-        if len(match) == 4:
-            for game in ids:
-                Match.create({'joueur1': game[0],
-                                'joueur2': game[1],
-                                'score_one': 0,
-                                'score_two': 0,
-                                'round_id': round_id,
-                                'match_id': len(db.table('matchs')) + 1})
-                id_players = game
-                to_remove = db.table('tournaments').search(
-                    where("id") == tournament_id)
-                to_remove[0]["list_of_possible_games"].remove(id_players)
         return nb_of_games
         
     @classmethod
     def enter_round_in_database(cls,round_id, tournament_id, count_rounds, match ):
+        """Used to save the round in the database
+
+        Args:
+            round_id (integer): id of the round in database
+            tournament_id (integer): id of the tournament in database
+            count_rounds (integer): id of the round in the tournament
+            match (list): contains all games for the round
+
+        Returns:
+            list: contains all the games of the round
+        """        
         Round.create({
             'round_id': round_id,
             'tournament_id': tournament_id,
@@ -230,7 +244,39 @@ class Tournament(Model):
         return round
     
     @classmethod
+    def enter_game_in_database(cls, match, round_id, tournament_id):
+        """Used to insert games in the database when they all have been generated
+
+        Args:
+            match (list): contains all games of the round 
+            round_id (integer): id of the round in the database
+            tournament_id (integer): id of the tournament in the database
+        """        
+        for game in match:
+                Match.create({'joueur1': f"{game[0][1]}(id:{game[0][0]})",
+                            'joueur2': f"{game[1][1]}(id:{game[1][0]})",
+                            'score_one': game[0][2],
+                            'score_two': game[1][2],
+                            'round_id': round_id,
+                            'match_id': len(db.table('matchs')) + 1})
+                to_remove = db.table('tournaments').search(
+                    where("id") == tournament_id)
+                try:
+                    to_remove[0]["list_of_possible_games"].remove([game[0][0], game[1][0]])
+                except ValueError:
+                    to_remove[0]["list_of_possible_games"].remove([game[1][0], game[0][0]])
+                    
+    @classmethod
     def check_last_round(cls, tournament_id, round_id):
+        """Check if the previous round is over before one can generate a new one
+
+        Args:
+            tournament_id (integer): id of the tournament in the database
+            round_id (integer): id of the round in the database
+
+        Returns:
+            boolean: False if the previous round is not over. True otherwise
+        """        
         previous_round_finished = db.table('rounds').get((where('tournament_id') == tournament_id) &
                                                          (where('round_id') == round_id))["ending_date"]
         if previous_round_finished == "":
@@ -238,19 +284,50 @@ class Tournament(Model):
         return True
 
     @classmethod
+    def generate_game(cls, copy_players, player_one, player_two, tournament_id, ids, authorized_game):
+        """Will generate the next game and chack if the configuration is authorized
+
+        Args:
+            copy_players (list): contains all players of the tournament
+            player_one (integer): index of the first player in copy_player
+            player_two (integer): index of the second player in copy_player
+            tournament_id (integer): id of the tournament in the database
+            ids (list): will contain the configurations by id of generated games
+            authorized_game (boolean): initially False. True when the configuration is authorized
+
+        Returns:
+            integer: id of both players in the generated game
+        """        
+        while not authorized_game:
+            player_one_id = copy_players[player_one].id.value
+            player_two_id = copy_players[player_two].id.value
+            if [player_one_id, player_two_id] in db.table('tournaments').search(
+                    where("id") == tournament_id)[0]["list_of_possible_games"]:
+                authorized_game = True
+                ids.append([player_one_id, player_two_id])
+                copy_players.remove(copy_players[player_two])
+                copy_players.remove(copy_players[player_one])
+                return player_one_id, player_two_id 
+            elif [player_two_id, player_one_id] in db.table('tournaments').search(
+                    where("id") == tournament_id)[0]["list_of_possible_games"]:
+                authorized_game = True
+                ids.append([player_two_id, player_one_id])
+                copy_players.remove(copy_players[player_two])
+                copy_players.remove(copy_players[player_one])
+                return player_one_id, player_two_id
+            player_two += 1
+
+    @classmethod
     def generate_round(cls, tournament_id):
-        """Generate a round according to the tournament ranking and the if it is the first round or not
-        Two cases are presents here:
-            - if it is the first round of the tournament, one take the sorted list of players
-              and split it into two lists.
-              From these two lists each players at the same index of each list
-              are confronted.
-            - if it is not the first round, one take the sorted list of players.
-              The first of the list encounters the second, the third encounters the fourth and so on
-              If the generated game has already occured. For exemple the first vs the second.
-              The second of the list shall be replaced by the third
-              and so on until a configuration is found that
-              haven't already been played."""
+        """Called to generate a round for a given tournament
+
+        Args:
+            tournament_id (integer): id of the tournament in the database
+
+        Returns:
+            method: call the methode that will enter the round in the database
+                    and return the fancy games configuration.
+        """        
         nb_of_played_round = db.table('tournaments').get(
             where('id') == tournament_id)['nb_of_played_round']
         nb_rounds = db.table('tournaments').get(
@@ -260,12 +337,11 @@ class Tournament(Model):
         count_rounds = db.table('tournaments').get(
             where('id') == tournament_id)['nb_of_played_round']
         round_id = len(db.table('rounds')) + 1
-        
         is_first_round = count_rounds == 0
         match = []
         players = Tournament.get_players(tournament_id)
         if is_first_round:
-            Tournament.generate_first_round(players, tournament_id, count_rounds, round_id, match)
+            Tournament.generate_first_round(players, tournament_id, round_id, match)
         elif not Tournament.check_last_round(tournament_id, round_id - 1):
             return False
         else:
@@ -280,36 +356,12 @@ class Tournament(Model):
                         authorized_game = False
                         player_one = 0
                         player_two = 1
-                        while not authorized_game:
-                            player_one_id = copy_players[player_one].id.value
-                            player_two_id = copy_players[player_two].id.value
-                            score_one, score_two = 0, 0
-                            if [player_one_id, player_two_id] in db.table('tournaments').search(
-                                    where("id") == tournament_id)[0]["list_of_possible_games"]:
-                                authorized_game = True
-                                ids.append([player_one_id, player_two_id])
-                                copy_players.remove(copy_players[player_two])
-                                copy_players.remove(copy_players[player_one])
-                            elif [player_two_id, player_one_id] in db.table('tournaments').search(
-                                    where("id") == tournament_id)[0]["list_of_possible_games"]:
-                                authorized_game = True
-                                ids.append([player_two_id, player_one_id])
-                                copy_players.remove(copy_players[player_two])
-                                copy_players.remove(copy_players[player_one])
-                            if not authorized_game:
-                                player_two += 1
-                                if player_two > 7:
-                                    print(f"il ne trouve pas d'adversaire pour le joueur {player_one_id}")
+                        player_one_id, player_two_id = Tournament.generate_game(copy_players, player_one, player_two, tournament_id, ids, authorized_game)
                         nb_of_games = Tournament.authorized_game(player_one_id,
-                                                    player_two_id,
-                                                    score_one,
-                                                    score_two,
-                                                    count_rounds,
-                                                    match,
-                                                    nb_of_games,
-                                                    ids,
-                                                    round_id,
-                                                    tournament_id)
+                                                                 player_two_id,
+                                                                 count_rounds,
+                                                                 match,
+                                                                 nb_of_games)
                 except IndexError:
                     copy_players = deepcopy(players)
                     to_reindex += 1 # Incremented each time the case is encountered
@@ -317,6 +369,7 @@ class Tournament(Model):
                     match, ids = [], []
                     continue
                 if nb_of_games == 4:
+                    Tournament.enter_game_in_database(match, round_id, tournament_id)
                     break
         return Tournament.enter_round_in_database(round_id, tournament_id, count_rounds, match)
 
@@ -461,7 +514,7 @@ class Tournament(Model):
         Returns:
             float: score of the player in the wished tournament 
         """        
-        """"""
+        
         if not db.table('scores').search(where('tournament_id') == tournament_id):
             return 0
 
@@ -677,7 +730,23 @@ class Player(Model):
 
 
 class Match(Model):
+    """[summary]
+
+    Args:
+        Model ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """    
     __table__ = db.table('matchs')
+
+    player_one_id = None
+    player_two_id = None
+    score_one = None
+    player_two_name = None
+    round_id = None
+    score_two = None
+    player_one_name = None
 
     def __init__(self, player_one_id, player_two_id, score_one=0, score_two=0, player_one_name=None, player_two_name=None, round_id=None):
         super().__init__()
@@ -691,6 +760,14 @@ class Match(Model):
 
     def __repr__(self):
         return f"{([self.player_one_id, self.player_one_name, self.score_one],[self.player_two_id, self.player_two_name, self.score_two])} \n"
+
+    def save(self):
+        self.__table__.insert({'joueur1': f"{self.player_one_name}(id:{self.player_one_id})",
+                          'joueur2': f"{self.player_two_name}(id:{self.player_two_id})",
+                          'score_one': self.score_one,
+                          'score_two': self.score_two,
+                          'round_id': self.round_id,
+                          'match_id': len(db.table('matchs')) + 1})
 
     def to_json(self):
         return json.dumps(([self.player_one_id, self.player_one_name, self.score_one],

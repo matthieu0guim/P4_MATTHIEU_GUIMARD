@@ -98,4 +98,4 @@ Si vous vous rendez compte que le classement elo d'un joueur n'est pas le bon vo
 La commande n°8 qui est également la dernière proposée sur le menu principal vous permet de consulter le classement temporaire ou définitif d'un tournoi. Après avoir rentré le numéro de la commande sur le menu principal, le programme vous affichera la liste des tournois par date de création. Il faudra à ce moment renseigner le numéro du tournoi en question. Le classement du tournoi sera alors affiché à l'écran du premier au dernier en fonction du score tournoi. En cas d'égalité pour le score, c'est le classement elo qui départage les joueurs.
 
 ## Quitter l'application
-Pour éteindre le programme il faudra appuyer sur les touche Ctrl + c. L'éxecution sera alors interrompue.
+Pour éteindre le programme il faudra appuyer sur les touches "Ctrl" + "c". L'éxecution sera alors interrompue.

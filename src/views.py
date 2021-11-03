@@ -106,7 +106,6 @@ class Views:
             round (dictionnary): Informations about the wished round in database
         """     
         if round:
-            # print(round['games'])
             for game in round['games']:
                 print(game)
             return
@@ -309,6 +308,7 @@ class Views:
         """Used in the main.py file to print possible actions for the user.
            Return:
            integer: number of the wished action"""
+
         print("\nBienvenue dans le menu principal! Que souhaitez-vous faire?"
               "(rentrez le n° de l'action)\n")
         print(

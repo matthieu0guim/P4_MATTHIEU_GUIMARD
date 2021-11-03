@@ -39,9 +39,8 @@ class AppController:
             tournament_id_user_choice (integer): id of the concerned tournament
 
         Returns:
-            [list]: a list containing all machs of the round
+            list: a list containing all games of the round
         """        """"""
-        
         round = Tournament.generate_round(tournament_id_user_choice)
         return round
 
