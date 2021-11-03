@@ -15,10 +15,10 @@ class AppController:
         Args:
             attrs (dictionnary): attributes collected by the view
         """        """"""
-
+        tournament = Tournament(attrs["name"], attrs["location"], attrs["description"], attrs["players"], attrs["game_rules"], attrs["nb_rounds"])
         id = Tournament.set_tournament_id()
-        attrs["id"] = id
-        Tournament.create(attrs)
+        tournament.id = id
+        tournament.save()
 
     @classmethod
     def create_player(cls, attrs):
@@ -28,8 +28,8 @@ class AppController:
             attrs (dictionnary): attrs are the attributes collected by the view
         """
         id = Tournament.set_player_id()
-        attrs["id"] = id
-        Player.create(attrs)
+        player = Player(firstname=attrs["firstname"], lastname=attrs["lastname"], birth_date=attrs["birth_date"], gender=attrs["gender"], elo=attrs["elo"], id=id)
+        player.save()
 
     @classmethod
     def generate_tour(cls, tournament_id_user_choice):

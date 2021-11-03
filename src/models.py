@@ -63,24 +63,50 @@ class Model:
     """Used as a parent class for orther classes that need to write into the database"""
     def __init__(cls):
         pass
-
-    @classmethod
-    def create(cls, attrs):
-        """Writte data in the database
-
-        Args:
-            attrs (dictionnary): will insert the dictionnary at the correct table
-        """        
-        cls.__table__.insert(attrs)
     
-
 
 class Tournament(Model):
     """Contains all methods used in database relations"""
     __table__ = db.table('tournaments')
 
-    def __init__(self):
+    name = None
+    location = None
+    description = None
+    nb_rounds = None
+    players = None
+    game_rules = None
+    rounds = None
+    nb_of_played_round = None
+    begin_date = None
+    ending_date = None
+    id = None
+
+    def __init__(self, name, location, description, players, game_rules,nb_rounds=4, rounds=[], nb_of_played_round=0, begin_date=str(datetime.now()), ending_date="", id=None):
         super().__init__()
+        self.name = name
+        self.location = location
+        self.description = description
+        self.nb_rounds = nb_rounds
+        self.players = players
+        self.game_rules = game_rules
+        self.rounds = rounds
+        self. nb_of_played_round = nb_of_played_round
+        self.begin_date = begin_date
+        self.ending_date = ending_date
+        self.id = id
+
+    def save(self):
+        self.__table__.insert({"name": self.name,
+                               "location": self.location,
+                               "description": self.description,
+                               "nb_rounds": self.nb_rounds,
+                               "players": self.players,
+                               "game_rules": self.game_rules,
+                               "rounds": self.rounds,
+                               "nb_of_played_round": self.nb_of_played_round,
+                               "begin_date": self.begin_date,
+                               "ending_date": self.ending_date,
+                               "id": self.id})
 
     @classmethod
     def set_tournament_id(cls):
@@ -222,14 +248,9 @@ class Tournament(Model):
 
         Returns:
             list: contains all the games of the round
-        """        
-        Round.create({
-            'round_id': round_id,
-            'tournament_id': tournament_id,
-            'name': f"Round {count_rounds + 1}",
-            'beginning_date': str(datetime.now()),
-            "ending_date": ""
-        })
+        """
+        round_bdd = Round(round_id, f"Round {count_rounds + 1}", tournament_id=tournament_id, beginning_date=str(datetime.now()))    
+        round_bdd.save()
         db.table('tournaments').update(increment('nb_of_played_round'),
                                        where("id") == int(tournament_id))
         db.table('rounds').update({"games": match},
@@ -252,19 +273,15 @@ class Tournament(Model):
             round_id (integer): id of the round in the database
             tournament_id (integer): id of the tournament in the database
         """        
-        for game in match:
-                Match.create({'joueur1': f"{game[0][1]}(id:{game[0][0]})",
-                            'joueur2': f"{game[1][1]}(id:{game[1][0]})",
-                            'score_one': game[0][2],
-                            'score_two': game[1][2],
-                            'round_id': round_id,
-                            'match_id': len(db.table('matchs')) + 1})
-                to_remove = db.table('tournaments').search(
-                    where("id") == tournament_id)
-                try:
-                    to_remove[0]["list_of_possible_games"].remove([game[0][0], game[1][0]])
-                except ValueError:
-                    to_remove[0]["list_of_possible_games"].remove([game[1][0], game[0][0]])
+        for game in match: # game is like: [[6, 'Light', 0], [4, 'goku', 0]]
+            match_bdd = Match(game[0][0], game[1][0], game[0][2], game[1][2], game[0][1], game[1][1], round_id)
+            match_bdd.save()
+            to_remove = db.table('tournaments').search(
+                where("id") == tournament_id)
+            try:
+                to_remove[0]["list_of_possible_games"].remove([game[0][0], game[1][0]])
+            except ValueError:
+                to_remove[0]["list_of_possible_games"].remove([game[1][0], game[0][0]])
                     
     @classmethod
     def check_last_round(cls, tournament_id, round_id):
@@ -456,16 +473,10 @@ class Tournament(Model):
                                       (where('player_id') == player_two_id) &
                                       (where('tournament_id') == tournament_id))
         else:
-            Score.create({
-                "player_id": player_one_id,
-                "tournament_id": tournament_id,
-                "score": player_one_score
-            })
-            Score.create({
-                "player_id": player_two_id,
-                "tournament_id": tournament_id,
-                "score": player_two_score
-            })
+            tournament_score_one = Score(player_one_id, tournament_id, player_one_score)
+            tournament_score_one.save()
+            tournament_score_two = Score(player_two_id, tournament_id, player_two_score)
+            tournament_score_two.save()
 
         already_in = False
         for n, match in enumerate(matchs_results):
@@ -514,7 +525,7 @@ class Tournament(Model):
         Returns:
             float: score of the player in the wished tournament 
         """        
-        
+
         if not db.table('scores').search(where('tournament_id') == tournament_id):
             return 0
 
@@ -722,11 +733,31 @@ class Tournament(Model):
 class Player(Model):
     __table__ = db.table('players')
 
-    def __init__(self):
+    firstname = None
+    lastname = None
+    birth_date = None
+    gender = None
+    elo = None
+
+    def __init__(self, firstname=None, lastname=None, birth_date=None, gender=None, elo=None, id=None):
         super().__init__()
+        self.firstname = firstname
+        self.lastname = lastname
+        self.birth_date = birth_date
+        self.gender = gender
+        self.elo = elo
+        self.id = id
 
     def __repr__(self):
         return self.__table__[0]["firstname"]
+    
+    def save(self):
+        self.__table__.insert({"firstname": self.firstname,
+                               "lastname": self.lastname,
+                               "birth_date": self.birth_date,
+                               "gender": self.gender,
+                               "elo": self.elo,
+                               "id": self.id})
 
 
 class Match(Model):
@@ -777,21 +808,47 @@ class Match(Model):
 class Round(Model):
     __table__ = db.table('rounds')
 
-    def __init__(self, list_of_match, tournament_id=None):
+    round_id = None
+    list_of_match = None
+    tournament_id = None
+    name = None
+    beginning_date = None
+    ending_date = None
+
+    def __init__(self, round_id, name, list_of_match=None, tournament_id=None, beginning_date=None, ending_date=None):
         super().__init__()
         self.tournament_id = tournament_id
+        self.round_id = round_id
+        self.name = name
         self.list_of_match = list_of_match
-        self.begin_date = str(datetime.now())
+        self.beginning_date = beginning_date #str(datetime.now())
+        self.ending_date = ending_date
 
     def __repr__(self):
         return f"{self.list_of_match}"
+    
+    def save(self):
+        self.__table__.insert({"round_id": self.round_id,
+                               "tournament_id": self.tournament_id,
+                               "name": self.name,
+                               "beginning_date": self.beginning_date,
+                               "ending_date": self.ending_date})
 
 
 class Score(Model):
     __table__ = db.table('scores')
+
+    player_id = None
+    tournament_id = None
+    score = None
 
     def __init__(self, player_id, tournament_id, score=None):
         super().__init__()
         self.tournament_id = tournament_id
         self.player_id = player_id
         self.score = score
+    
+    def save(self):
+        self.__table__.insert({"player_id": self.player_id,
+                               "tournament_id": self.tournament_id,
+                               "score": self.score})
