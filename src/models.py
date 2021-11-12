@@ -17,6 +17,12 @@ from copy import deepcopy
 class Field:
 
     def __init__(self, key, value):
+        """take a couple key value and turn them into an attribute of the wanted class 
+
+        Args:
+            key (string): describe the attribute
+            value (variable): can be of any type
+        """        
         self.key = key
         self.value = value
 
@@ -32,6 +38,11 @@ class Item:
         return self.to_json()
 
     def to_json(self):
+        """Take all attributes from children class and organize them into json
+
+        Returns:
+            json: dictionnary that can be seen and saved in the database
+        """        
         item = {}
         for attr in dir(self):
             if isinstance(getattr(self, attr), Field):
@@ -57,15 +68,9 @@ class Collection:
 
 
 db = TinyDB('db.json')
-
-
-class Model:
-    """Used as a parent class for orther classes that need to write into the database"""
-    def __init__(cls):
-        pass
     
 
-class Tournament(Model):
+class Tournament():
     """Contains all methods used in database relations"""
     __table__ = db.table('tournaments')
 
@@ -96,6 +101,8 @@ class Tournament(Model):
         self.id = id
 
     def save(self):
+        """writte all attribute in the database at the corresponding table
+        """        
         self.__table__.insert({"name": self.name,
                                "location": self.location,
                                "description": self.description,
@@ -730,7 +737,7 @@ class Tournament(Model):
         return returned_report
 
 
-class Player(Model):
+class Player():
     __table__ = db.table('players')
 
     firstname = None
@@ -752,6 +759,7 @@ class Player(Model):
         return self.__table__[0]["firstname"]
     
     def save(self):
+        """ Save all attributes in the database at the corresponding table """        
         self.__table__.insert({"firstname": self.firstname,
                                "lastname": self.lastname,
                                "birth_date": self.birth_date,
@@ -760,15 +768,8 @@ class Player(Model):
                                "id": self.id})
 
 
-class Match(Model):
-    """[summary]
-
-    Args:
-        Model ([type]): [description]
-
-    Returns:
-        [type]: [description]
-    """    
+class Match():
+    """ Model for match management """      
     __table__ = db.table('matchs')
 
     player_one_id = None
@@ -780,7 +781,6 @@ class Match(Model):
     player_one_name = None
 
     def __init__(self, player_one_id, player_two_id, score_one=0, score_two=0, player_one_name=None, player_two_name=None, round_id=None):
-        super().__init__()
         self.player_one_id = player_one_id
         self.player_two_id = player_two_id
         self.score_one = score_one
@@ -793,6 +793,8 @@ class Match(Model):
         return f"{([self.player_one_id, self.player_one_name, self.score_one],[self.player_two_id, self.player_two_name, self.score_two])} \n"
 
     def save(self):
+        """Save all attributes in the database at the corresponding table
+        """ 
         self.__table__.insert({'joueur1': f"{self.player_one_name}(id:{self.player_one_id})",
                           'joueur2': f"{self.player_two_name}(id:{self.player_two_id})",
                           'score_one': self.score_one,
@@ -805,7 +807,7 @@ class Match(Model):
                            [self.player_two_id, self.player_two_name, self.score_two]))
 
 
-class Round(Model):
+class Round():
     __table__ = db.table('rounds')
 
     round_id = None
@@ -828,6 +830,8 @@ class Round(Model):
         return f"{self.list_of_match}"
     
     def save(self):
+        """Save all attributes in the database at the corresponding table
+        """ 
         self.__table__.insert({"round_id": self.round_id,
                                "tournament_id": self.tournament_id,
                                "name": self.name,
@@ -835,7 +839,7 @@ class Round(Model):
                                "ending_date": self.ending_date})
 
 
-class Score(Model):
+class Score():
     __table__ = db.table('scores')
 
     player_id = None
@@ -849,6 +853,8 @@ class Score(Model):
         self.score = score
     
     def save(self):
+        """Save all attributes in the database at the corresponding table
+        """ 
         self.__table__.insert({"player_id": self.player_id,
                                "tournament_id": self.tournament_id,
                                "score": self.score})
