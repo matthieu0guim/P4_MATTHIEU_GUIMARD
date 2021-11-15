@@ -14,8 +14,13 @@ class AppController:
 
         Args:
             attrs (dictionnary): attributes collected by the view
-        """        """"""
-        tournament = Tournament(attrs["name"], attrs["location"], attrs["description"], attrs["players"], attrs["game_rules"], attrs["nb_rounds"])
+        """
+        tournament = Tournament(attrs["name"],
+                                attrs["location"],
+                                attrs["description"],
+                                attrs["players"],
+                                attrs["game_rules"],
+                                attrs["nb_rounds"])
         id = Tournament.set_tournament_id()
         tournament.id = id
         tournament.save()
@@ -28,7 +33,12 @@ class AppController:
             attrs (dictionnary): attrs are the attributes collected by the view
         """
         id = Tournament.set_player_id()
-        player = Player(firstname=attrs["firstname"], lastname=attrs["lastname"], birth_date=attrs["birth_date"], gender=attrs["gender"], elo=attrs["elo"], id=id)
+        player = Player(firstname=attrs["firstname"],
+                        lastname=attrs["lastname"],
+                        birth_date=attrs["birth_date"],
+                        gender=attrs["gender"],
+                        elo=attrs["elo"],
+                        id=id)
         player.save()
 
     @classmethod

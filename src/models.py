@@ -15,14 +15,13 @@ from copy import deepcopy
 
 
 class Field:
-
+    """ take a couple key value and turn them into an attribute of the wanted class """
     def __init__(self, key, value):
-        """take a couple key value and turn them into an attribute of the wanted class 
-
+        """
         Args:
             key (string): describe the attribute
             value (variable): can be of any type
-        """        
+        """
         self.key = key
         self.value = value
 
@@ -38,11 +37,11 @@ class Item:
         return self.to_json()
 
     def to_json(self):
-        """Take all attributes from children class and organize them into json
+        """ Take all attributes from children class and organize them into json
 
         Returns:
             json: dictionnary that can be seen and saved in the database
-        """        
+        """
         item = {}
         for attr in dir(self):
             if isinstance(getattr(self, attr), Field):
@@ -51,13 +50,13 @@ class Item:
 
 
 class Collection:
-    """Take a dictionnary in argument and turns items into attributes and corresponding values"""
+    """ Take a dictionnary in argument and turns items into attributes and corresponding values """
     def __init__(self, data=None):
         """Initiate Collection with items from a dictionnary
 
         Args:
             data (dictionnary, optional): [description]. Defaults to None.
-        """  
+        """
         self._items = []
         for item in data:
             self._items.append(Item(**item))
@@ -68,10 +67,10 @@ class Collection:
 
 
 db = TinyDB('db.json')
-    
+
 
 class Tournament():
-    """Contains all methods used in database relations"""
+    """ Contains all methods used in database relations """
     __table__ = db.table('tournaments')
 
     name = None
@@ -86,7 +85,19 @@ class Tournament():
     ending_date = None
     id = None
 
-    def __init__(self, name, location, description, players, game_rules,nb_rounds=4, rounds=[], nb_of_played_round=0, begin_date=str(datetime.now()), ending_date="", id=None):
+    def __init__(self,
+                 name,
+                 location,
+                 description,
+                 players,
+                 game_rules,
+                 nb_rounds=4,
+                 rounds=[],
+                 nb_of_played_round=0,
+                 begin_date=str(datetime.now()),
+                 ending_date="",
+                 id=None):
+
         super().__init__()
         self.name = name
         self.location = location
@@ -102,7 +113,7 @@ class Tournament():
 
     def save(self):
         """writte all attribute in the database at the corresponding table
-        """        
+        """
         self.__table__.insert({"name": self.name,
                                "location": self.location,
                                "description": self.description,
@@ -139,7 +150,7 @@ class Tournament():
         Creates a list composed of Player's objects
         Then it sorts this list according to the tournament_score of each player.
         In case of equality it takes the elo rank.
-            
+
             Args:
                 tournament_id (integer): get the dictionnary of the tournament in the table 'tournaments'
 
@@ -166,10 +177,10 @@ class Tournament():
         """Make a list with all possible game configurations
         This is made with itertools combinations methods.
         Then cases as [[P1 vs P2], [P2 vs P1]] are avoided
-            
+
             Args:
                 tournament_id: id of the wished tournament
-            
+
             Return:
                 list: contains all possible games configurations
         """
@@ -181,16 +192,16 @@ class Tournament():
     @classmethod
     def generate_first_round(cls, players, tournament_id, round_id, match):
         """As the first round has a unique logic in its generation it is isolated in a function.
-           
+
         Args:
             players (list): sorted list of tournament's players
             tournament_id (integer): id of the wished tournament
             round_id (integer): id of the round in the database
             match (list): empty list that will be filled with the generated games
-        """        
+        """
         all_possible_games = Tournament.listing_all_possible_games(tournament_id)
         cls.__table__.update({"list_of_possible_games": all_possible_games},
-                                where("id") == tournament_id)
+                             where("id") == tournament_id)
         top = 0
         bottom = int(len(players)/2)
         while top < len(players)/2:
@@ -200,7 +211,13 @@ class Tournament():
             score_two = 0
             player_one_name = players[top].firstname.value
             player_two_name = players[bottom].firstname.value
-            game = Match(player_one_id, player_two_id, score_one, score_two,player_one_name, player_two_name, round_id)
+            game = Match(player_one_id,
+                         player_two_id,
+                         score_one,
+                         score_two,
+                         player_one_name,
+                         player_two_name,
+                         round_id)
             match.append(game.to_json())
             game.save()
             top += 1
@@ -208,11 +225,12 @@ class Tournament():
         pass
 
     @classmethod
-    def authorized_game(cls, player_one_id,
-                             player_two_id,
-                             count_rounds,
-                             match,
-                             nb_of_games):
+    def authorized_game(cls,
+                        player_one_id,
+                        player_two_id,
+                        count_rounds,
+                        match,
+                        nb_of_games):
         """When a generated game is authorized, as it has not already happened,
         this function add it to the game list of the round and create Match instance.
 
@@ -226,25 +244,24 @@ class Tournament():
 
         Returns:
             integer: when equal to for this value will make the program break from the while loop it is into
-        """        
+        """
         player_one_name = Tournament.get_player_info(player_one_id)[0].split()[1]
         player_two_name = Tournament.get_player_info(player_two_id)[0].split()[1]
         score_one, score_two = 0, 0
         game = Match(player_one_id,
-                    player_two_id,
-                    score_one,
-                    score_two,
-                    player_one_name,
-                    player_two_name,
-                    count_rounds
-                    )
+                     player_two_id,
+                     score_one,
+                     score_two,
+                     player_one_name,
+                     player_two_name,
+                     count_rounds)
         match.append([[game.player_one_id, game.player_one_name, game.score_one],
                      [game.player_two_id, game.player_two_name, game.score_two]])
         nb_of_games += 1
         return nb_of_games
-        
+
     @classmethod
-    def enter_round_in_database(cls,round_id, tournament_id, count_rounds, match ):
+    def enter_round_in_database(cls, round_id, tournament_id, count_rounds, match):
         """Used to save the round in the database
 
         Args:
@@ -256,7 +273,10 @@ class Tournament():
         Returns:
             list: contains all the games of the round
         """
-        round_bdd = Round(round_id, f"Round {count_rounds + 1}", tournament_id=tournament_id, beginning_date=str(datetime.now()))    
+        round_bdd = Round(round_id,
+                          f"Round {count_rounds + 1}",
+                          tournament_id=tournament_id,
+                          beginning_date=str(datetime.now()))
         round_bdd.save()
         db.table('tournaments').update(increment('nb_of_played_round'),
                                        where("id") == int(tournament_id))
@@ -270,17 +290,17 @@ class Tournament():
         db.table('tournaments').update({'rounds': rounds},
                                        where("id") == tournament_id)
         return round
-    
+
     @classmethod
     def enter_game_in_database(cls, match, round_id, tournament_id):
-        """Used to insert games in the database when they all have been generated
+        """ Used to insert games in the database when they all have been generated
 
         Args:
-            match (list): contains all games of the round 
+            match (list): contains all games of the round
             round_id (integer): id of the round in the database
             tournament_id (integer): id of the tournament in the database
-        """        
-        for game in match: # game is like: [[6, 'Light', 0], [4, 'goku', 0]]
+        """
+        for game in match:  # game is like: [[6, 'Light', 0], [4, 'goku', 0]]
             match_bdd = Match(game[0][0], game[1][0], game[0][2], game[1][2], game[0][1], game[1][1], round_id)
             match_bdd.save()
             to_remove = db.table('tournaments').search(
@@ -289,7 +309,7 @@ class Tournament():
                 to_remove[0]["list_of_possible_games"].remove([game[0][0], game[1][0]])
             except ValueError:
                 to_remove[0]["list_of_possible_games"].remove([game[1][0], game[0][0]])
-                    
+
     @classmethod
     def check_last_round(cls, tournament_id, round_id):
         """Check if the previous round is over before one can generate a new one
@@ -300,7 +320,7 @@ class Tournament():
 
         Returns:
             boolean: False if the previous round is not over. True otherwise
-        """        
+        """
         previous_round_finished = db.table('rounds').get((where('tournament_id') == tournament_id) &
                                                          (where('round_id') == round_id))["ending_date"]
         if previous_round_finished == "":
@@ -321,7 +341,7 @@ class Tournament():
 
         Returns:
             integer: id of both players in the generated game
-        """        
+        """
         while not authorized_game:
             player_one_id = copy_players[player_one].id.value
             player_two_id = copy_players[player_two].id.value
@@ -331,7 +351,7 @@ class Tournament():
                 ids.append([player_one_id, player_two_id])
                 copy_players.remove(copy_players[player_two])
                 copy_players.remove(copy_players[player_one])
-                return player_one_id, player_two_id 
+                return player_one_id, player_two_id
             elif [player_two_id, player_one_id] in db.table('tournaments').search(
                     where("id") == tournament_id)[0]["list_of_possible_games"]:
                 authorized_game = True
@@ -351,7 +371,7 @@ class Tournament():
         Returns:
             method: call the methode that will enter the round in the database
                     and return the fancy games configuration.
-        """        
+        """
         nb_of_played_round = db.table('tournaments').get(
             where('id') == tournament_id)['nb_of_played_round']
         nb_rounds = db.table('tournaments').get(
@@ -371,7 +391,7 @@ class Tournament():
         else:
             copy_players = deepcopy(players)
             ids = []
-            to_reindex = 1 # used to solve the case where the two last player have already encountered.
+            to_reindex = 1  # used to solve the case where the two last player have already encountered.
             while True:
                 nb_of_games = 0
                 nb_of_players = len(players)
@@ -380,7 +400,12 @@ class Tournament():
                         authorized_game = False
                         player_one = 0
                         player_two = 1
-                        player_one_id, player_two_id = Tournament.generate_game(copy_players, player_one, player_two, tournament_id, ids, authorized_game)
+                        player_one_id, player_two_id = Tournament.generate_game(copy_players,
+                                                                                player_one,
+                                                                                player_two,
+                                                                                tournament_id,
+                                                                                ids,
+                                                                                authorized_game)
                         nb_of_games = Tournament.authorized_game(player_one_id,
                                                                  player_two_id,
                                                                  count_rounds,
@@ -388,7 +413,7 @@ class Tournament():
                                                                  nb_of_games)
                 except IndexError:
                     copy_players = deepcopy(players)
-                    to_reindex += 1 # Incremented each time the case is encountered
+                    to_reindex += 1  # Incremented each time the case is encountered
                     copy_players[-1], copy_players[-to_reindex] = copy_players[-to_reindex], copy_players[-1]
                     match, ids = [], []
                     continue
@@ -407,8 +432,8 @@ class Tournament():
         Returns:
             list: game's list of the ongoing tournament
             integer: id of the ongoing round
-        """        
-        
+        """
+
         T = Query()
         chosen_tournament = Collection(cls.__table__.search(
             where('id') == tournament_id_user_choice))
@@ -446,7 +471,7 @@ class Tournament():
             match_id (integer): id of the match in the database
             player_one_score (float): 0, 0.5 or 1
             player_two_score (float): 0, 0.5 or 1
-            matchs_results (list): list of the games with the results 
+            matchs_results (list): list of the games with the results
         """
 
         player_one_id = int(db.table('matchs').search(where("match_id") == int(match_id))[0]["joueur1"][-2])
@@ -469,7 +494,13 @@ class Tournament():
             db.table('tournaments').update({"list_of_possible_games": list_of_possible_games},
                                            where("id") == tournament_id)
 
-        game = Match(player_one_id, player_two_id, player_one_score, player_two_score, player_one_name, player_two_name, match_id)
+        game = Match(player_one_id,
+                     player_two_id,
+                     player_one_score,
+                     player_two_score,
+                     player_one_name,
+                     player_two_name,
+                     match_id)
 
         if db.table('scores').get((where('tournament_id') == tournament_id) &
                                   (where("player_id") == player_one_id)):
@@ -501,7 +532,7 @@ class Tournament():
         It also give an ending date to the corresponding round
 
         Args:
-            matchs_results (list): list of the games with the results 
+            matchs_results (list): list of the games with the results
             round_id (integer): id of the round in database
             tournament_id_user_choice (integer): id of the tournament in database
         """
@@ -530,8 +561,8 @@ class Tournament():
             tournament_id (integer): id of the concerned tournament in database
 
         Returns:
-            float: score of the player in the wished tournament 
-        """        
+            float: score of the player in the wished tournament
+        """
 
         if not db.table('scores').search(where('tournament_id') == tournament_id):
             return 0
@@ -549,7 +580,7 @@ class Tournament():
         Args:
             player_choice (integer): id of the player in database
             new_elo (integer): new value updated in database
-        """  
+        """
         P = Query()
         db.table('players').update({'elo': new_elo}, P.id == player_choice)
 
@@ -576,7 +607,7 @@ class Tournament():
         """Return a list with all components of the 'players' table
         Returns:
             list: a list with all components of the 'players' table
-        """        
+        """
         return db.table('players').all()
 
     @classmethod
@@ -610,9 +641,9 @@ class Tournament():
         Args:
             sorting (string): a for alphabetical, c for rank
             returned_report (list): each element is a list with player info
-        """        
+        """
         if sorting == "a":
-                report = sorted(Tournament.get_all_players(), key=lambda x: x["firstname"].lower())
+            report = sorted(Tournament.get_all_players(), key=lambda x: x["firstname"].lower())
         if sorting == "c":
             report = sorted(Tournament.get_all_players(), key=lambda x: x["elo"], reverse=True)
         for value in report:
@@ -620,10 +651,10 @@ class Tournament():
                                     f"Nom: {value['lastname']}",
                                     f"Date de naissance: {value['birth_date']}",
                                     f"Classement elo: {value['elo']}"])
-    
+
     @classmethod
     def report_2(cls, report, returned_report, choosing):
-        """generate a report with all tournaments in database 
+        """generate a report with all tournaments in database
 
         Args:
             report (list): intermediate list that will be cleaned
@@ -632,7 +663,7 @@ class Tournament():
 
         Returns:
             list: list with clean data
-        """        
+        """
         report = Tournament.get_all_tournaments()
         for value in report:
             if choosing:
@@ -650,9 +681,9 @@ class Tournament():
                                     f"Date de début: {value['begin_date']}",
                                     f"Date de fin: {value['ending_date']}"])
         return returned_report
-    
+
     @classmethod
-    def report_3(cls, report, returned_report,tournament_choice, sorting):
+    def report_3(cls, report, returned_report, tournament_choice, sorting):
         """generate a list with all players for a given tournament
 
         Args:
@@ -660,10 +691,10 @@ class Tournament():
             returned_report (list): empty list that will be filled with fancy elements
             tournament_choice (integer): id of the wished tournament in database
             sorting (string): a for alphabetical, c for rank
-        """        
+        """
         if sorting == "a":
-                report = sorted(Tournament.get_players(tournament_choice),
-                                key=lambda x: x.firstname.value.lower())
+            report = sorted(Tournament.get_players(tournament_choice),
+                            key=lambda x: x.firstname.value.lower())
         if sorting == "c":
             report = sorted(Tournament.get_players(tournament_choice),
                             key=lambda x: x.elo.value, reverse=True)
@@ -673,7 +704,7 @@ class Tournament():
                                     f"Date de naissance: {value.birth_date.value}",
                                     f"Classement elo: {value.elo.value}",
                                     f"Score dans le tournoi: {value.tournament_score}"])
-    
+
     @classmethod
     def report_4(cls, report, returned_report, tournament_choice):
         """generate a report ith all rounds from a given tournament
@@ -685,7 +716,7 @@ class Tournament():
 
         Returns:
             list: list with fancy data
-        """        
+        """
         report = Tournament.get_tournament_rounds(tournament_choice)
         display = deepcopy(report)
         for value in display:
@@ -717,8 +748,8 @@ class Tournament():
 
         Returns:
             list: list filled with data to display
-        """                   
-                   
+        """
+
         report = []
         returned_report = []
         if choice == 1:
@@ -738,6 +769,7 @@ class Tournament():
 
 
 class Player():
+    """ Model for player management """
     __table__ = db.table('players')
 
     firstname = None
@@ -757,9 +789,9 @@ class Player():
 
     def __repr__(self):
         return self.__table__[0]["firstname"]
-    
+
     def save(self):
-        """ Save all attributes in the database at the corresponding table """        
+        """ Save all attributes in the database at the corresponding table """
         self.__table__.insert({"firstname": self.firstname,
                                "lastname": self.lastname,
                                "birth_date": self.birth_date,
@@ -769,7 +801,7 @@ class Player():
 
 
 class Match():
-    """ Model for match management """      
+    """ Model for match management """
     __table__ = db.table('matchs')
 
     player_one_id = None
@@ -780,7 +812,14 @@ class Match():
     score_two = None
     player_one_name = None
 
-    def __init__(self, player_one_id, player_two_id, score_one=0, score_two=0, player_one_name=None, player_two_name=None, round_id=None):
+    def __init__(self,
+                 player_one_id,
+                 player_two_id,
+                 score_one=0,
+                 score_two=0,
+                 player_one_name=None,
+                 player_two_name=None,
+                 round_id=None):
         self.player_one_id = player_one_id
         self.player_two_id = player_two_id
         self.score_one = score_one
@@ -790,17 +829,18 @@ class Match():
         self.round_id = round_id
 
     def __repr__(self):
-        return f"{([self.player_one_id, self.player_one_name, self.score_one],[self.player_two_id, self.player_two_name, self.score_two])} \n"
+        to_repr1 = f"{[self.player_one_id, self.player_one_name, self.score_one]}\n"
+        to_repr2 = f",{[self.player_two_id, self.player_two_name, self.score_two]} \n"
+        return f"{to_repr1} {to_repr2}"
 
     def save(self):
-        """Save all attributes in the database at the corresponding table
-        """ 
+        """ Save all attributes in the database at the corresponding table """
         self.__table__.insert({'joueur1': f"{self.player_one_name}(id:{self.player_one_id})",
-                          'joueur2': f"{self.player_two_name}(id:{self.player_two_id})",
-                          'score_one': self.score_one,
-                          'score_two': self.score_two,
-                          'round_id': self.round_id,
-                          'match_id': len(db.table('matchs')) + 1})
+                               'joueur2': f"{self.player_two_name}(id:{self.player_two_id})",
+                               'score_one': self.score_one,
+                               'score_two': self.score_two,
+                               'round_id': self.round_id,
+                               'match_id': len(db.table('matchs')) + 1})
 
     def to_json(self):
         return json.dumps(([self.player_one_id, self.player_one_name, self.score_one],
@@ -808,6 +848,11 @@ class Match():
 
 
 class Round():
+    """ Model for Round management
+
+    Returns:
+        string: fancy display of a round
+    """
     __table__ = db.table('rounds')
 
     round_id = None
@@ -823,15 +868,14 @@ class Round():
         self.round_id = round_id
         self.name = name
         self.list_of_match = list_of_match
-        self.beginning_date = beginning_date #str(datetime.now())
+        self.beginning_date = beginning_date  # str(datetime.now())
         self.ending_date = ending_date
 
     def __repr__(self):
         return f"{self.list_of_match}"
-    
+
     def save(self):
-        """Save all attributes in the database at the corresponding table
-        """ 
+        """ Save all attributes in the database at the corresponding table """
         self.__table__.insert({"round_id": self.round_id,
                                "tournament_id": self.tournament_id,
                                "name": self.name,
@@ -840,6 +884,7 @@ class Round():
 
 
 class Score():
+    """ Model for score management """
     __table__ = db.table('scores')
 
     player_id = None
@@ -851,10 +896,9 @@ class Score():
         self.tournament_id = tournament_id
         self.player_id = player_id
         self.score = score
-    
+
     def save(self):
-        """Save all attributes in the database at the corresponding table
-        """ 
+        """ Save all attributes in the database at the corresponding table """
         self.__table__.insert({"player_id": self.player_id,
                                "tournament_id": self.tournament_id,
                                "score": self.score})

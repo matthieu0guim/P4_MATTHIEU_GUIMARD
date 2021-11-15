@@ -18,7 +18,7 @@ class Views:
         ... raises:: If less than 8 players are informed it raises
                     an error and the user is rediricted to main menu
             returns:
-             dictionnary : a dictionnary to write in base with all informations about the tournament  
+             dictionnary : a dictionnary to write in base with all informations about the tournament
         """
         players = []
         tournament_info = {}
@@ -67,7 +67,7 @@ class Views:
     @staticmethod
     def create_player_view():
         """Used to enter a new player in database
-        
+
         First four parameters are optionals.
             Raises: If the elo field is not informed it raises
                     an error and the user is rediricted to main menu"""
@@ -104,7 +104,7 @@ class Views:
 
         Args:
             round (dictionnary): Informations about the wished round in database
-        """     
+        """
         if round:
             for game in round['games']:
                 print(game)
@@ -117,7 +117,8 @@ class Views:
         The user enter the id of the wanted tournament
 
         Args:
-            generating_rounds (bool, optional): Equal to true if generating a round for an ongoing tournament. Defaults to False.
+            generating_rounds (bool, optional): Equal to true if generating a round for an
+                                                ongoing tournament. Defaults to False.
 
         Returns:
             integer: the id of the wished tournament
@@ -140,9 +141,9 @@ class Views:
         """
         tournament_id_user_choice = int(Views.tournament_choice_view(generating_rounds=True))
         round = AppController.generate_tour(tournament_id_user_choice)
-        if round == None:
+        if round is None:
             print("Le tournoi est terminé. Il n'est plus possible de jouer de tours.")
-        elif round == False:
+        elif round is False:
             print("Il y a déjà un round en cours, vous devez d'abord rentrer les résultats avant d'en créer un autre")
         Views.show_generated_round(round)
 
@@ -156,7 +157,7 @@ class Views:
             games_list (list): the list of round's matchs
 
         Returns:
-            dictionnary: dictionnary with the results of matchs updated      
+            dictionnary: dictionnary with the results of matchs updated
         """
         if not games_list:
             print("La liste des matchs est vide.")
